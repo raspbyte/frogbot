@@ -23,9 +23,13 @@ async function getFrogImage() {
 async function sendDailyFrog() {
   const channel = await client.channels.fetch(CHANNEL_ID);
   const imageUrl = await getFrogImage();
+  console.log(imageUrl)
   await channel.send({
-    content: '🐸',
-    embeds: [{ image: { url: imageUrl } }]
+    content: '🐸 Your daily frog!',
+    embeds: [{
+      title: 'Daily Frog',
+      image: { url: imageUrl }
+    }]
   });
 }
 
