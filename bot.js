@@ -3,8 +3,8 @@ const https = require('https');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const DISCORD_TOKEN = 'YOUR_BOT_TOKEN';
-const CHANNEL_ID = 'YOUR_CHANNEL_ID'; // Right-click channel → Copy Channel ID
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const CHANNEL_ID = process.env.CHANNEL_ID;
 const INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 async function getFrogImage() {
