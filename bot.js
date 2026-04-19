@@ -5,7 +5,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const INTERVAL_MS = 60 * 1000; // 1 minute
 
 async function getFrogImage() {
   return new Promise((resolve, reject) => {
