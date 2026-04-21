@@ -14,6 +14,7 @@ async function getFrogImage() {
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         const json = JSON.parse(data);
+        console.log(json)
         resolve(json.image); // returns a direct image URL
       });
     }).on('error', reject);
@@ -33,7 +34,7 @@ async function sendDailyFrog() {
   });
 }
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}`);
   sendDailyFrog(); // send one immediately on startup
   setInterval(sendDailyFrog, INTERVAL_MS); // then every 24 hours
