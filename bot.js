@@ -1,43 +1,85 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const https = require('https');
+const http = require('http');
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 async function getFrogImage() {
   return new Promise((resolve, reject) => {
-    https.get('https://some-random-api.com/animal/frog', (res) => {
+    const options = {
+      hostname: 'www.reddit.com',
+      path: '/r/frogs/random/.json',
+      headers: { 'User-Agent': 'frogbot/1.0' }
+    };
+
+    https.get(options, (res) => {
+      // Follow Reddit's redirect
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        const redirectOptions = {
+          hostname: 'www.reddit.com',
+          path: res.headers.location,
+          headers: { 'User-Agent': 'frogbot/1.0' }
+        };
+        https.get(redirectOptions, (res2) => {
+          let data = '';
+          res2.on('data', chunk => data += chunk);
+          res2.on('end', () => {
+            const json = JSON.parse(data);
+            const post = json[0].data.children[0].data;
+            const url = post.url;
+            if (!url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+              return resolve(getFrogImage()); // retry if not an image
+            }
+            console.log('Frog URL:', url);
+            resolve(url);
+          });
+        }).on('error', reject);
+        return;
+      }
+
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         const json = JSON.parse(data);
-        console.log(json)
-        resolve(json.image); // returns a direct image URL
+        const post = json[0].data.children[0].data;
+        const url = post.url;
+        if (!url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          return resolve(getFrogImage()); // retry if not an image
+        }
+        console.log('Frog URL:', url);
+        resolve(url);
       });
     }).on('error', reject);
   });
 }
 
 async function sendDailyFrog() {
-  const channel = await client.channels.fetch(CHANNEL_ID);
-  const imageUrl = await getFrogImage();
-  console.log(imageUrl)
-  await channel.send({
-    content: '🐸 Your daily frog!',
-    embeds: [{
-      title: 'Daily Frog',
-      image: { url: imageUrl }
-    }]
-  });
+  try {
+    const channel = await client.channels.fetch(CHANNEL_ID);
+    const imageUrl = await getFrogImage();
+    await channel.send({
+      content: '🐸 Your daily frog!',
+      embeds: [{
+        title: 'Daily Frog',
+        image: { url: imageUrl }
+      }]
+    });
+  } catch (err) {
+    console.error('Failed to send frog:', err);
+  }
 }
+
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}`);
-  sendDailyFrog(); // send one immediately on startup
-  setInterval(sendDailyFrog, INTERVAL_MS); // then every 24 hours
+  sendDailyFrog();
+  setInterval(sendDailyFrog, INTERVAL_MS);
 });
+
+// Dummy server to keep Railway awake
+http.createServer((req, res) => res.end('🐸')).listen(process.env.PORT || 3000);
 
 client.login(DISCORD_TOKEN);
