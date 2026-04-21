@@ -11,45 +11,33 @@ async function getFrogImage() {
     const options = {
       hostname: 'www.reddit.com',
       path: '/r/frogs/random/.json',
-      headers: { 'User-Agent': 'frogbot/1.0' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
     };
 
     https.get(options, (res) => {
-      // Follow Reddit's redirect
-      if (res.statusCode === 301 || res.statusCode === 302) {
-        const redirectOptions = {
-          hostname: 'www.reddit.com',
-          path: res.headers.location,
-          headers: { 'User-Agent': 'frogbot/1.0' }
-        };
-        https.get(redirectOptions, (res2) => {
-          let data = '';
-          res2.on('data', chunk => data += chunk);
-          res2.on('end', () => {
-            const json = JSON.parse(data);
-            const post = json[0].data.children[0].data;
-            const url = post.url;
-            if (!url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-              return resolve(getFrogImage()); // retry if not an image
-            }
-            console.log('Frog URL:', url);
-            resolve(url);
-          });
-        }).on('error', reject);
-        return;
-      }
-
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
-        const json = JSON.parse(data);
-        const post = json[0].data.children[0].data;
-        const url = post.url;
-        if (!url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-          return resolve(getFrogImage()); // retry if not an image
+        // Check we actually got JSON before parsing
+        if (!data.trim().startsWith('[') && !data.trim().startsWith('{')) {
+          console.error('Reddit returned non-JSON response, status:', res.statusCode);
+          return reject(new Error('Reddit blocked the request'));
         }
-        console.log('Frog URL:', url);
-        resolve(url);
+        try {
+          const json = JSON.parse(data);
+          const post = json[0].data.children[0].data;
+          const url = post.url;
+          if (!url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+            return resolve(getFrogImage());
+          }
+          console.log('Frog URL:', url);
+          resolve(url);
+        } catch (e) {
+          reject(e);
+        }
       });
     }).on('error', reject);
   });
