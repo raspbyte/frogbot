@@ -9,11 +9,11 @@ const INTERVAL_MS = 24 * 60 * 60 * 1000;
 async function getFrogImage() {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'www.reddit.com',
-      path: '/r/frogs/random/.json',
+      hostname: 'api.unsplash.com',
+      path: '/photos/random?query=frog&orientation=landscape',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
+        'Authorization': `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
+        'Accept-Version': 'v1'
       }
     };
 
@@ -21,18 +21,9 @@ async function getFrogImage() {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
-        // Check we actually got JSON before parsing
-        if (!data.trim().startsWith('[') && !data.trim().startsWith('{')) {
-          console.error('Reddit returned non-JSON response, status:', res.statusCode);
-          return reject(new Error('Reddit blocked the request'));
-        }
         try {
           const json = JSON.parse(data);
-          const post = json[0].data.children[0].data;
-          const url = post.url;
-          if (!url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-            return resolve(getFrogImage());
-          }
+          const url = json.urls.regular;
           console.log('Frog URL:', url);
           resolve(url);
         } catch (e) {
